@@ -1,3 +1,28 @@
+{
+   "Findings": [ 
+      { 
+         "AwsAccountId": "123456789012",
+         "CreatedAt": "2026-04-16T18:15:00Z",
+         "Description": "Detailed description of the security issue.",
+         "GeneratorId": "arn:aws:securityhub:us-east-1:123456789012:test-generator",
+         "Id": "unique-finding-id-001",
+         "ProductArn": "arn:aws:securityhub:us-east-1:123456789012:product/123456789012/default",
+         "Resources": [ 
+            { 
+               "Id": "arn:aws:s3:::example-bucket",
+               "Type": "AwsS3Bucket"
+            }
+         ],
+         "SchemaVersion": "2018-10-08",
+         "Severity": { 
+            "Label": "MEDIUM" 
+         },
+         "Title": "Finding Title",
+         "Types": [ "Software and Configuration Checks" ],
+         "UpdatedAt": "2026-04-16T18:15:00Z"
+      }
+   ]
+}
 .DS_Store
 node_modules
 coverage
