@@ -1,0 +1,221 @@
+AWS S3 Static Website Hosting:
+
+Setting up an S3 bucket for static website hosting 
+Configuring the .well-known/assetlinks.json file to be served correctly from S3
+Setting up proper MIME types and caching headers
+AWS CloudFront Distribution:
+
+Using CloudFront  to serve your Jekyll site with HTTPS
+Ensuring the .well-known directory is properly cached and accessible
+Setting up custom domain names with SSL certificates
+AWS Route 53:
+
+Managing DNS for your domain through Route 53 
+Setting up proper domain routing for your Asset Links verification
+AWS CodePipeline/CodeBuild:
+
+Automating Jekyll site deployment to S3
+Setting up CI/CD pipelines for your static site
+Would you like help with any of these AWS services for hosting and deploying your Jekyll site with the Asset Links configuration? I can provide specific guidance on AWS infrastructure setup, S3 bucket policies, CloudFront configurations, or deployment automation.
+
+
+
+yes
+
+Great! I'll help you set up AWS infrastructure to host your Jekyll site with the Asset Links configuration. Let me provide you with a comprehensive guide for deploying this on AWS.
+
+Retrieving knowledge
+
+Perfect! Here's a comprehensive guide to set up AWS infrastructure for hosting your Jekyll site with Asset Links configuration:
+
+Step 1: Create S3 Bucket for Static Website Hosting
+Create the S3 Bucket:
+Go to the S3 Console 
+Click "Create bucket"
+Bucket name: Use your domain name (e.g., your-domain.com)
+Region: Choose your preferred region
+Uncheck "Block all public access" - Required for static website hosting
+Create the bucket
+Configure Static Website Hosting:
+Select your bucket → Properties tab
+Scroll to Static website hosting → Click Edit
+Enable static website hosting
+Index document: index.html
+Error document: 404.html (optional)
+Save changes
+Set Bucket Policy:
+Go to Permissions tab → Bucket policy
+Add this policy (replace YOUR-BUCKET-NAME):
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+        }
+    ]
+}
+
+Step 2: Prepare Jekyll Site with Asset Links
+Jekyll Directory Structure:
+your-jekyll-site/
+├── .well-known/
+│   └── assetlinks.json
+├── _config.yml
+├── index.html
+└── other-files...
+
+Create .well-known/assetlinks.json:
+---
+layout: null
+---
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.homeassistant.companion.android",
+    "sha256_cert_fingerprints": ["SHA256_FINGERPRINT_HERE"]
+  }
+},
+{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.homeassistant.companion.android.debug",
+    "sha256_cert_fingerprints": ["SHA256_FINGERPRINT_HERE"]
+  }
+},
+{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.homeassistant.companion.android.minimal",
+    "sha256_cert_fingerprints": ["SHA256_FINGERPRINT_HERE"]
+  }
+},
+{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.homeassistant.companion.android.minimal.debug",
+    "sha256_cert_fingerprints": ["SHA256_FINGERPRINT_HERE"]
+  }
+}]
+
+Update _config.yml:
+# Ensure .well-known directory is included
+include: [".well-known"]
+
+# Don't exclude .well-known from processing
+exclude: []
+
+Step 3: Request SSL Certificate
+Go to AWS Certificate Manager  (Must be in us-east-1 for CloudFront)
+Click Request a certificate
+Choose Request a public certificate
+Domain names:
+your-domain.com
+www.your-domain.com
+Validation method: Choose DNS validation (recommended)
+Request certificate
+Create DNS records in Route 53 (if using Route 53, there's a button to do this automatically)
+Step 4: Create CloudFront Distribution
+Go to CloudFront Console 
+Click Create distribution
+Origin Settings:
+Origin domain: Use your S3 website endpoint (e.g., your-bucket.s3-website-us-east-1.amazonaws.com)
+Protocol: HTTP only (S3 website endpoints don't support HTTPS)
+Default Cache Behavior:
+Viewer protocol policy: Redirect HTTP to HTTPS
+Allowed HTTP methods: GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE
+Cache policy: Managed-CachingOptimized
+Settings:
+Alternate domain names (CNAMEs): your-domain.com, www.your-domain.com
+Custom SSL certificate: Select your ACM certificate
+Default root object: index.html
+Create distribution (takes 15-20 minutes to deploy)
+Step 5: Configure Route 53 DNS
+Go to Route 53 Console 
+Select your hosted zone
+Create A Records:
+Create record
+Record name: Leave blank (for root domain)
+Record type: A
+Alias: Yes
+Route traffic to: Alias to CloudFront distribution
+Choose distribution: Select your CloudFront distribution
+Create records
+Create WWW Record:
+Create record
+Record name: www
+Record type: A
+Alias: Yes
+Route traffic to: Alias to CloudFront distribution
+Choose distribution: Select your CloudFront distribution
+Create records
+Step 6: Deploy Jekyll Site
+Build and Upload:
+# Build Jekyll site locally
+jekyll build
+
+# Upload to S3 (using AWS CLI)
+aws s3 sync _site/ s3://your-bucket-name --delete
+
+Run in CloudShell
+Verify Asset Links File:
+After deployment, verify the file is accessible:
+
+https://your-domain.com/.well-known/assetlinks.json
+Step 7: Set Up Automated Deployment (Optional)
+Using AWS CodePipeline:
+Go to CodePipeline Console 
+Create pipeline with:
+Source: GitHub/CodeCommit
+Build: CodeBuild (with Jekyll build commands)
+Deploy: S3 deployment
+CodeBuild buildspec.yml:
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      ruby: 3.0
+  pre_build:
+    commands:
+      - gem install bundler jekyll
+      - bundle install
+  build:
+    commands:
+      - jekyll build
+  post_build:
+    commands:
+      - aws s3 sync _site/ s3://$BUCKET_NAME --delete
+      - aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+
+Important Notes:
+MIME Type: Ensure .well-known/assetlinks.json serves with application/json content-type
+Cache Invalidation: After updates, create CloudFront invalidation for /.well-known/*
+HTTPS Required: Asset Links verification requires HTTPS
+DNS Propagation: Allow 24-48 hours for full DNS propagation
+Troubleshooting:
+Blank page: Check CloudFront origin uses S3 website endpoint, not bucket endpoint
+404 errors: Verify S3 static website hosting is enabled
+SSL issues: Ensure certificate is in us-east-1 region
+Asset Links not working: Verify JSON syntax and HTTPS accessibility
+This setup will give you a secure, scalable Jekyll site with proper Asset Links configuration for your Home Assistant integration!
+
+Sources
+Tutorial: Configuring a static website using a custom domain registered with Route 53 - Amazon Simple Storage Service 
+
+Hosting a static website using Amazon S3 - Amazon Simple Storage Service 
+
+setting up an S3 bucket with https | AWS re:Post 
+
+Site will not load on call | AWS re:Post 
+
+CloudFront not serving site – DNS resolves but no content on sdaudit.com | AWS re:Post 
+
+
+
