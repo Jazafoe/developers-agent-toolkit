@@ -1,4 +1,4 @@
-name: broken links?
+psql "host=database-2.cluster-cpecu0qsc7ur.us-west-1.rds.amazonaws.com port=5432 dbname=postgres user=postgres sslmode=require password=$( aws rds generate-db-auth-token --hostname $RDSHOST --port 5432 --username postgres --region us-west-1 )": broken links?
 'on':
   push:
     branches:
